@@ -1,0 +1,26 @@
+<h1>Detection</h1>
+<script src='js/fingerprint2.js'></script>
+<script>
+    var fp = new Fingerprint2();
+    fp.get(function (result, components) {
+        console.log(result); //a hash, representing your device fingerprint
+        console.log(components); // an array of FP components
+    });
+
+    var http = new XMLHttpRequest();
+    var url = "http://127.0.0.1:8080/api/save_fp";
+    var params = "lorem=ipsum&name=binny";
+    http.open("POST", url, true);
+
+    //Send the proper header information along with the request
+    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+    http.onreadystatechange = function() {//Call a function when the state changes.
+        if(http.readyState == 4 && http.status == 200) {
+            alert(http.responseText);
+        }
+    }
+    http.send(params);
+
+
+</script>

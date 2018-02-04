@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "express": "^4.16.2",
+    "fingerprintjs2": "^1.6.1",
+    "http": "0.0.0"
+  }
+}
