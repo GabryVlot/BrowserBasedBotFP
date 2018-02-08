@@ -22,10 +22,21 @@
             var url = "http://10.0.2.2:8080/api/save_fp";
             http.open("POST", url, true);
 
+            const windowKeys = Object.keys(window);
+            const docKeys = Object.keys(window.document);
+            const navigatorKeys = Object.keys(window.navigator);
+
+            console.log('@@', windowKeys.length, docKeys.length, navigatorKeys.length);
+
             const params = {
                 "hash": hash,
                 "fp": components,
-                "configuration": configuration
+                "configuration": configuration,
+                "browser": {
+                    window: windowKeys,
+                    document: docKeys,
+                    navigator: navigatorKeys
+                }
             }
 
             //Send the proper header information along with the request
@@ -37,7 +48,14 @@
 //                    alert(http.responseText);
 //                }
             }
-            console.log('send params', params);
+
+            for (var i =0; i<components.length;i++){
+                const entry = components[i];
+                //if (entry.key === 'js_fonts')
+                //    console.log('@@@FONts', entry.value);
+            }
+
+            console.log('send params', JSON.stringify(params.configuration, null, 4));
             http.send(JSON.stringify(params));
         }
 

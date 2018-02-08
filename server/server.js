@@ -6,6 +6,7 @@ var path = require('path');
 var settings = JSON.parse(fs.readFileSync('../settings.json', 'utf8'));
 var app = express();
 var dbUtils = require('../db/db-utils.js');
+var bodyParser = require('body-parser');
 const _ = require('underscore');
 
 dbUtils.initialize();
@@ -16,8 +17,9 @@ app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-app.use(express.json());       // to support JSON-encoded bodies
-app.use(express.urlencoded({extended: true})); // to support URL-encoded bodies
+
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 
 app.get("/index.html", function (request, response) { //root dir
     response.sendFile(settings.ROOT_PATH + '/client/index.html')
@@ -28,7 +30,6 @@ app.get('/', function (req, res) {
 });
 
 app.post('/api/save_fp', function (request, response) {
-    console.log('!!@@@@@@@incomming');
     try{
         if (request.body)
             dbUtils.insertFP(request.body, JSON.stringify(request.headers));

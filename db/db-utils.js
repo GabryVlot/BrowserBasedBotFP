@@ -28,6 +28,16 @@ function initialize(){
             ")"
         );
 
+        db.run("CREATE TABLE if not exists browser (" +
+            "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "configuration_id integer," +
+            "window_keys TEXT," +
+            "document_keys TEXT," +
+            "navigator_keys TEXT," +
+            "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
+            ")"
+        );
+
         db.run("CREATE TABLE if not exists requests (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
@@ -84,13 +94,21 @@ function connect(){
     return db;
 }
 
-function insertFP(fp, requestHeaders){
+function insertFP(params, requestHeaders){
     const db = connect();
     let fields = ['hash'];
-    let valueArray = ["'" + fp.hash + "'"];
+    let valueArray = ["'" + params.hash + "'"];
     let plugins = '';
     let fonts = '';
-    _.each(fp.fp, function(fingerPrint){
+
+    let counter = 0;
+    _.each(params.fp, function(fingerPrint){
+        counter++;
+        // if (counter >= 6) {
+        //     if (counter === 6)
+        //     console.log(fingerPrint.key, fingerPrint.value)
+        //     return;
+        // }
          if (fingerPrint.key === 'regular_plugins'){
              plugins = fingerPrint.value;
              return;
@@ -132,23 +150,25 @@ function insertFP(fp, requestHeaders){
                 valueArray.push("'" + fingerPrint.value + "'");
                 break;
             default:
-                valueArray.push(fingerPrint.value);
+                valueArray.push(fingerPrint.value === 'number' ? fingerPrint.value : -1);
         }
     });
 
-    insertTableRecord('configuration', 'value', "'" + fp.configuration + "'", db, function(insertedID){
+    insertTableRecord('configuration', 'value', "'" + params.configuration + "'", db, function(insertedID){
        //Plugins
         insertTableRecord('plugins', 'configuration_id, value', insertedID + ',"' + plugins.toString() + '"', db);
        //Fonts
         insertTableRecord('fonts', 'configuration_id, value', insertedID + ',"' + fonts.toString() + '"', db);
+        //Browser
+        insertTableRecord('browser', 'configuration_id, window_keys, document_keys, navigator_keys', insertedID + ',"' +
+            params.browser.window.map((value) =>  value).join(',') + '","' + params.browser.document.map((value) =>  value).join(',')
+            + '","' + params.browser.navigator.map((value) =>  value).join(',') + '"'  , db);
         //Requests
         insertTableRecord('requests', 'configuration_id, headers', insertedID + ",'" + requestHeaders + "'", db);
        //FP
         fields.push('configuration_id');
         valueArray.push(insertedID);
-        let fieldsString = fields.map((value) =>  value).join(',');
-        let placeholders = valueArray.map((value) =>  value).join(',');
-        insertTableRecord('fp', fieldsString, placeholders, db);
+        insertTableRecord('fp', fields.map((value) =>  value).join(','),  valueArray.map((value) =>  value).join(','), db);
     });
     db.close();
 }
@@ -157,7 +177,6 @@ function insertTableRecord(tablename, fields, values, db, cb){
     let sqlPlugins = 'INSERT INTO ' + tablename + '(' + fields + ') VALUES ('+ values + ')';
     db.run(sqlPlugins, function(err, result) {
         if (err) {
-            console.log('fields', fields, values)
             return console.error(tablename + ' ' + err.message);
         }
         console.log(tablename + ` Rows inserted ${this.changes}`, this.lastID);
