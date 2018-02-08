@@ -2,6 +2,8 @@
   "dependencies": {
     "express": "^4.16.2",
     "fingerprintjs2": "^1.6.1",
-    "http": "0.0.0"
+    "http": "0.0.0",
+    "sqlite3": "^3.1.13",
+    "underscore": "^1.8.3"
   }
 }

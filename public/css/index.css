@@ -1,0 +1,2 @@
+div.ext-box { display: table; width:100%;}
+div.int-box { display: table-cell; vertical-align: middle; }

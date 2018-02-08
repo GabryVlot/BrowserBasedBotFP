@@ -1,26 +1,58 @@
-<h1>Detection</h1>
-<script src='js/fingerprint2.js'></script>
-<script>
-    var fp = new Fingerprint2();
-    fp.get(function (result, components) {
-        console.log(result); //a hash, representing your device fingerprint
-        console.log(components); // an array of FP components
-    });
+<head>
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+    <script src='js/fingerprint2.js'></script>
+    <script>
+        function fp(){
+            const configuration = document.getElementById('txtConfDesc').value
+            if (!configuration || configuration.length === 0){
+                alert('Enter configuration description')
+                return;
+            }
 
-    var http = new XMLHttpRequest();
-    var url = "http://127.0.0.1:8080/api/save_fp";
-    var params = "lorem=ipsum&name=binny";
-    http.open("POST", url, true);
-
-    //Send the proper header information along with the request
-    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-
-    http.onreadystatechange = function() {//Call a function when the state changes.
-        if(http.readyState == 4 && http.status == 200) {
-            alert(http.responseText);
+            var fp = new Fingerprint2();
+            fp.get(function (result, components) {
+                console.log(result); //a hash, representing your device fingerprint
+                console.log(components); // an array of FP components
+                saveFP(result, components, configuration);
+            });
         }
-    }
-    http.send(params);
+
+        function saveFP(hash, components, configuration){
+            var http = new XMLHttpRequest();
+            var url = "http://10.0.2.2:8080/api/save_fp";
+            http.open("POST", url, true);
+
+            const params = {
+                "hash": hash,
+                "fp": components,
+                "configuration": configuration
+            }
+
+            //Send the proper header information along with the request
+            http.setRequestHeader("Content-type", "application/json");
 
 
-</script>
+            http.onreadystatechange = function() {//Call a function when the state changes.
+//                if(http.readyState == 4 && http.status == 200) {
+//                    alert(http.responseText);
+//                }
+            }
+            console.log('send params', params);
+            http.send(JSON.stringify(params));
+        }
+
+    </script>
+</head>
+
+<div class="ext-box">
+    <h1>Detection</h1>
+    <div class="int-box">
+
+        <div class="int-box">
+            <label>Configuration description:</label>
+            <input id="txtConfDesc" type="text" name="confDescr">
+        </div>
+        <button onclick="fp()" id="btnFP">Fingerprint Browser</button>
+
+    </div>
+</div>
