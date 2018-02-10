@@ -2,6 +2,13 @@
     <link rel="stylesheet" type="text/css" href="css/index.css">
     <script src='js/fingerprint2.js'></script>
     <script>
+
+        const missingBind = lackOfJavaScriptEngineFeatures();
+        const stackTrace = stackTraces();
+        const webSecurity = hasWebSecurity();
+        const autoClosePopup = timing();
+
+        console.log('Results', missingBind, stackTrace, webSecurity, autoClosePopup);
         function fp(){
             const configuration = document.getElementById('txtConfDesc').value
             if (!configuration || configuration.length === 0){
@@ -19,14 +26,13 @@
 
         function saveFP(hash, components, configuration){
             var http = new XMLHttpRequest();
-            var url = "http://10.0.2.2:8080/api/save_fp";
+
+            var url = window.location.origin + "/api/save_fp";
             http.open("POST", url, true);
 
             const windowKeys = Object.keys(window);
             const docKeys = Object.keys(window.document);
             const navigatorKeys = Object.keys(window.navigator);
-
-            console.log('@@', windowKeys.length, docKeys.length, navigatorKeys.length);
 
             const params = {
                 "hash": hash,
@@ -36,6 +42,12 @@
                     window: windowKeys,
                     document: docKeys,
                     navigator: navigatorKeys
+                },
+                "misc": {
+                    missingBindFunction: missingBind,
+                    stackTrace: stackTrace,
+                    webSecurity: webSecurity,
+                    autoClosePopup: autoClosePopup
                 }
             }
 
@@ -55,8 +67,89 @@
                 //    console.log('@@@FONts', entry.value);
             }
 
-            console.log('send params', JSON.stringify(params.configuration, null, 4));
+            console.log('send params', JSON.stringify(params, null, 4));
             http.send(JSON.stringify(params));
+        }
+
+        function lackOfJavaScriptEngineFeatures(){
+           return (function () {
+                if (!Function.prototype.bind) {
+               //     console.log("PhantomJS environment detected. #1");
+                    return true;
+                }
+                if (Function.prototype.bind.toString().replace(/bind/g, 'Error') != Error.toString()) {
+              //      console.log("PhantomJS environment detected. #2");
+                    return true;
+                }
+                if (Function.prototype.toString.toString().replace(/toString/g, 'Error') != Error.toString()) {
+               //     console.log("PhantomJS environment detected. #3");
+                    return true;
+                }
+               // console.log("PhantomJS environment not detected.");
+                return false;
+            })();
+        }
+
+        function timing(){
+            var start = Date.now();
+            alert('Press OK');
+            var elapse = Date.now() - start;
+//            if (elapse < 15) {
+//                console.log("PhantomJS environment detected. #1");
+//            } else {
+//                console.log("PhantomJS environment not detected.");
+//            }
+            return elapse < 15 ? true : false
+        }
+
+        function stackTraces(){
+//            var html = document.querySelectorAll('html');
+//            var oldQSA = document.querySelectorAll;
+//            Document.prototype.querySelectorAll = Element.prototype.querySelectorAll = function () {
+//                var err;
+//                try {
+//                    null[0]();
+//                } catch (e) {
+//                    err = e;
+//                }
+//                if (indexOfString(err.stack, 'phantomjs') > -1) {
+//                    return html;
+//                } else {
+//                    return oldQSA.apply(this, arguments);
+//                }
+//            };
+
+            var err;
+            try {
+                null[0]();
+            } catch (e) {
+                err = e;
+            }
+            return err.stack;
+//            if (err.stack.indexOf('phantomjs') > -1) {
+//                console.log("PhantomJS environment detected.");
+//            } else {
+//                console.log("PhantomJS environment is not detected.");
+//            }
+        }
+
+        function hasWebSecurity(){
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'file:/etc/hosts, false');
+            xhr.onload = function(){
+              //  console.log('onLoad', xhr.responseText);
+            };
+            xhr.onerror = function(e){
+              //console.log('Error:', JSON.stringify(e));
+            };
+
+            try{
+                xhr.send();
+            }
+            catch(e){
+                return false;
+            }
+            return true;
         }
 
     </script>
@@ -71,6 +164,9 @@
             <input id="txtConfDesc" type="text" name="confDescr">
         </div>
         <button onclick="fp()" id="btnFP">Fingerprint Browser</button>
-
+        <button onclick="lackOfJavaScriptEngineFeatures()" id="btnJavaScriptEngine">JavaScriptEngine</button>
+        <button onclick="timing()" id="btnTiming">Timing</button>
+        <button onclick="stackTraces()" id="btnStackTraces">StackTraces</button>
+        <button onclick="webSecurity()" id="btnWebSecurity">WebSecurity</button>
     </div>
 </div>

@@ -75,6 +75,10 @@ function initialize(){
             "has_lied_os integer," +
             "has_lied_browser integer, " +
             "touch_support text," +
+            "missingBindFunction integer," +
+            "stackTrace text," +
+            "webSecurity integer," +
+            "autoClosePopup integer," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
         );
@@ -150,7 +154,7 @@ function insertFP(params, requestHeaders){
                 valueArray.push("'" + fingerPrint.value + "'");
                 break;
             default:
-                valueArray.push(fingerPrint.value === 'number' ? fingerPrint.value : -1);
+                valueArray.push(typeof fingerPrint.value === 'number' ? fingerPrint.value : -1);
         }
     });
 
@@ -166,8 +170,9 @@ function insertFP(params, requestHeaders){
         //Requests
         insertTableRecord('requests', 'configuration_id, headers', insertedID + ",'" + requestHeaders + "'", db);
        //FP
-        fields.push('configuration_id');
-        valueArray.push(insertedID);
+        fields.push('missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup', 'configuration_id');
+        valueArray.push(params.misc.missingBindFunction ? 1 : 0, '"' + params.misc.stackTrace + '"', params.misc.webSecurity ? 1 : 0, params.misc.autoClosePopup ? 1 : 0, insertedID);
+
         insertTableRecord('fp', fields.map((value) =>  value).join(','),  valueArray.map((value) =>  value).join(','), db);
     });
     db.close();
