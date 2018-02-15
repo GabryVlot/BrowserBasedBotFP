@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <head>
     <link rel="stylesheet" type="text/css" href="css/index.css">
     <script src='js/fingerprint2.js'></script>
@@ -8,8 +9,7 @@
         const webSecurity = hasWebSecurity();
         const autoClosePopup = timing();
 
-        console.log('Results', missingBind, stackTrace, webSecurity, autoClosePopup);
-        function fp(){
+        function getParams(cb){
             const configuration = document.getElementById('txtConfDesc').value
             if (!configuration || configuration.length === 0){
                 alert('Enter configuration description')
@@ -18,57 +18,48 @@
 
             var fp = new Fingerprint2();
             fp.get(function (result, components) {
-                console.log(result); //a hash, representing your device fingerprint
-                console.log(components); // an array of FP components
-                saveFP(result, components, configuration);
+                const windowKeys = Object.keys(window);
+                const docKeys = Object.keys(window.document);
+                const navigatorKeys = Object.keys(window.navigator);
+
+                const params = {
+                    "hash": result,
+                    "fp": components,
+                    "configuration": configuration,
+                    "browser": {
+                        window: windowKeys,
+                        document: docKeys,
+                        navigator: navigatorKeys
+                    },
+                    "misc": {
+                        missingBindFunction: missingBind,
+                        stackTrace: stackTrace,
+                        webSecurity: webSecurity,
+                        autoClosePopup: autoClosePopup
+                    }
+                }
+                console.log('send params', params, null, 4);
+                if (cb)
+                    cb(params);
             });
         }
 
-        function saveFP(hash, components, configuration){
-            var http = new XMLHttpRequest();
-
+        function saveFP(){
             var url = window.location.origin + "/api/save_fp";
+            var http = new XMLHttpRequest();
             http.open("POST", url, true);
-
-            const windowKeys = Object.keys(window);
-            const docKeys = Object.keys(window.document);
-            const navigatorKeys = Object.keys(window.navigator);
-
-            const params = {
-                "hash": hash,
-                "fp": components,
-                "configuration": configuration,
-                "browser": {
-                    window: windowKeys,
-                    document: docKeys,
-                    navigator: navigatorKeys
-                },
-                "misc": {
-                    missingBindFunction: missingBind,
-                    stackTrace: stackTrace,
-                    webSecurity: webSecurity,
-                    autoClosePopup: autoClosePopup
-                }
-            }
 
             //Send the proper header information along with the request
             http.setRequestHeader("Content-type", "application/json");
-
-
             http.onreadystatechange = function() {//Call a function when the state changes.
 //                if(http.readyState == 4 && http.status == 200) {
 //                    alert(http.responseText);
 //                }
             }
 
-            for (var i =0; i<components.length;i++){
-                const entry = components[i];
-                //if (entry.key === 'js_fonts')
-                //    console.log('@@@FONts', entry.value);
-            }
-
-            console.log('send params', JSON.stringify(params, null, 4));
-            http.send(JSON.stringify(params));
+            getParams(function(params){
+                http.send(JSON.stringify(params));
+            })
         }
 
         function lackOfJavaScriptEngineFeatures(){
@@ -134,14 +125,17 @@
         }
 
         function hasWebSecurity(){
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'file:/etc/hosts, false');
-            xhr.onload = function(){
-              //  console.log('onLoad', xhr.responseText);
-            };
-            xhr.onerror = function(e){
-              //console.log('Error:', JSON.stringify(e));
-            };
+            var xhr;
+            if (window.XMLHttpRequest)
+                xhr = new XMLHttpRequest();
+            else
+                xhr = new window.ActiveXObject("Microsoft.XMLHTTP");
+
+            try {
+                xhr.open('GET', 'file:/etc/hosts, false');
+            }catch(e){ //I.e. 11
+               return true;
+            }
 
             try{
                 xhr.send();
@@ -163,10 +157,11 @@
             <label>Configuration description:</label>
             <input id="txtConfDesc" type="text" name="confDescr">
         </div>
-        <button onclick="fp()" id="btnFP">Fingerprint Browser</button>
+        <button onclick="saveFP()" id="btnFP">Fingerprint Browser</button>
         <button onclick="lackOfJavaScriptEngineFeatures()" id="btnJavaScriptEngine">JavaScriptEngine</button>
         <button onclick="timing()" id="btnTiming">Timing</button>
         <button onclick="stackTraces()" id="btnStackTraces">StackTraces</button>
-        <button onclick="webSecurity()" id="btnWebSecurity">WebSecurity</button>
+        <button onclick="getParams()" id="btnDryRun">Dry run</button>
     </div>
 </div>
+</html>

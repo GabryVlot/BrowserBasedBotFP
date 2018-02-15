@@ -20,6 +20,14 @@ function initialize(){
             ")"
         );
 
+        db.run("CREATE TABLE if not exists ie_plugins (" +
+            "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "configuration_id integer," +
+            "value TEXT," +
+            "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
+            ")"
+        );
+
         db.run("CREATE TABLE if not exists fonts (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
@@ -103,6 +111,7 @@ function insertFP(params, requestHeaders){
     let fields = ['hash'];
     let valueArray = ["'" + params.hash + "'"];
     let plugins = '';
+    let ie_plugins = '';
     let fonts = '';
 
     let counter = 0;
@@ -115,6 +124,11 @@ function insertFP(params, requestHeaders){
         // }
          if (fingerPrint.key === 'regular_plugins'){
              plugins = fingerPrint.value;
+             return;
+         }
+
+         if (fingerPrint.key === 'ie_plugins'){
+             ie_plugins = fingerPrint.value;
              return;
          }
 
@@ -161,6 +175,8 @@ function insertFP(params, requestHeaders){
     insertTableRecord('configuration', 'value', "'" + params.configuration + "'", db, function(insertedID){
        //Plugins
         insertTableRecord('plugins', 'configuration_id, value', insertedID + ',"' + plugins.toString() + '"', db);
+        //ie plugins
+        insertTableRecord('ie_plugins', 'configuration_id, value', insertedID + ',"' + ie_plugins.toString() + '"', db);
        //Fonts
         insertTableRecord('fonts', 'configuration_id, value', insertedID + ',"' + fonts.toString() + '"', db);
         //Browser
