@@ -18,10 +18,9 @@
 
             var fp = new Fingerprint2();
             fp.get(function (result, components) {
-                const windowKeys = Object.keys(window);
-                const docKeys = Object.keys(window.document);
-                const navigatorKeys = Object.keys(window.navigator);
-
+                const windowKeys = getObjectProperties(window);
+                const docKeys = getObjectProperties(document);
+                const navigatorKeys = getObjectProperties(navigator);
                 const params = {
                     "hash": result,
                     "fp": components,
@@ -29,9 +28,9 @@
                     "browser": {
                         window: windowKeys,
                         document: docKeys,
-                        navigator: navigatorKeys
-                    },
-                    "misc": {
+                        navigator: navigatorKeys,
+                        language: navigator.language,
+                        languages: navigator.languages,
                         missingBindFunction: missingBind,
                         stackTrace: stackTrace,
                         webSecurity: webSecurity,
@@ -42,6 +41,12 @@
                 if (cb)
                     cb(params);
             });
+        }
+
+        function getObjectProperties(browserObject){
+            const keys = [];
+            for (var w in browserObject){ keys.push(w);}
+            return keys;
         }
 
         function saveFP(){

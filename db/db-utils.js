@@ -1,6 +1,11 @@
 const sqlite3 = require('sqlite3').verbose()
 const path = require('path')
 const _ = require('underscore');
+const hash = require('object-hash');
+
+const valueTableFields = ['configuration_id', 'hash', 'value'];
+const browserFields = ['configuration_id', 'hash', 'window_keys', 'document_keys', 'navigator_keys', 'language', 'languages','missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup'];
+const requestFields = ['configuration_id', 'hash', 'headers'];
 
 function initialize(){
 
@@ -15,6 +20,7 @@ function initialize(){
         db.run("CREATE TABLE if not exists plugins (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
+            "hash text," +
             "value TEXT," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
@@ -22,6 +28,7 @@ function initialize(){
 
         db.run("CREATE TABLE if not exists ie_plugins (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "hash text," +
             "configuration_id integer," +
             "value TEXT," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
@@ -31,6 +38,7 @@ function initialize(){
         db.run("CREATE TABLE if not exists fonts (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
+            "hash text," +
             "value TEXT," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
@@ -39,9 +47,16 @@ function initialize(){
         db.run("CREATE TABLE if not exists browser (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
+            "hash text," +
             "window_keys TEXT," +
             "document_keys TEXT," +
             "navigator_keys TEXT," +
+            "language," +
+            "languages," +
+            "missingBindFunction integer," +
+            "stackTrace text," +
+            "webSecurity integer," +
+            "autoClosePopup integer," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
         );
@@ -49,6 +64,7 @@ function initialize(){
         db.run("CREATE TABLE if not exists requests (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
+            "hash text," +
             "headers TEXT," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
@@ -83,10 +99,6 @@ function initialize(){
             "has_lied_os integer," +
             "has_lied_browser integer, " +
             "touch_support text," +
-            "missingBindFunction integer," +
-            "stackTrace text," +
-            "webSecurity integer," +
-            "autoClosePopup integer," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
         );
@@ -174,24 +186,35 @@ function insertFP(params, requestHeaders){
 
     insertTableRecord('configuration', 'value', "'" + params.configuration + "'", db, function(insertedID){
        //Plugins
-        insertTableRecord('plugins', 'configuration_id, value', insertedID + ',"' + plugins.toString() + '"', db);
+       const pluginHash = hash(plugins);
+       insertTableRecord('plugins', getStringFromArray(valueTableFields), insertedID + ',"' + pluginHash + '","' + plugins.toString() + '"', db);
         //ie plugins
-        insertTableRecord('ie_plugins', 'configuration_id, value', insertedID + ',"' + ie_plugins.toString() + '"', db);
+       const iePluginHash = hash(ie_plugins);
+       insertTableRecord('ie_plugins', getStringFromArray(valueTableFields), insertedID + ',"' + iePluginHash + '","' + ie_plugins.toString() + '"', db);
        //Fonts
-        insertTableRecord('fonts', 'configuration_id, value', insertedID + ',"' + fonts.toString() + '"', db);
+       const fontsHash = hash(fonts);
+       insertTableRecord('fonts', getStringFromArray(valueTableFields), insertedID + ',"' + fontsHash + '","' + fonts.toString() + '"', db);
         //Browser
-        insertTableRecord('browser', 'configuration_id, window_keys, document_keys, navigator_keys', insertedID + ',"' +
-            params.browser.window.map((value) =>  value).join(',') + '","' + params.browser.document.map((value) =>  value).join(',')
-            + '","' + params.browser.navigator.map((value) =>  value).join(',') + '"'  , db);
-        //Requests
-        insertTableRecord('requests', 'configuration_id, headers', insertedID + ",'" + requestHeaders + "'", db);
-       //FP
-        fields.push('missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup', 'configuration_id');
-        valueArray.push(params.misc.missingBindFunction ? 1 : 0, '"' + params.misc.stackTrace + '"', params.misc.webSecurity ? 1 : 0, params.misc.autoClosePopup ? 1 : 0, insertedID);
+        const browserHash = hash(params.browser);
+        const browserValues = [insertedID, '"' + browserHash + '"', '"' + getStringFromArray(params.browser.window) + '"', '"' + getStringFromArray(params.browser.document) + '"', '"' +
+        getStringFromArray(params.browser.navigator) + '"', '"' + params.browser.language + '"', '"' + getStringFromArray(params.browser.languages) + '"',
+            params.browser.missingBindFunction ? 1 : 0, '"' + params.browser.stackTrace + '"', params.browser.webSecurity ? 1 : 0, params.browser.autoClosePopup ? 1 : 0];
 
-        insertTableRecord('fp', fields.map((value) =>  value).join(','),  valueArray.map((value) =>  value).join(','), db);
+        insertTableRecord('browser', getStringFromArray(browserFields), getStringFromArray(browserValues), db);
+        //Requests
+        const requestHash = hash(requestHeaders);
+       insertTableRecord('requests', getStringFromArray(requestFields), insertedID + ",'" + requestHash + "','" + requestHeaders + "'", db);
+       //FP
+        fields.push('configuration_id');
+        valueArray.push(insertedID);
+
+       insertTableRecord('fp', getStringFromArray(fields), getStringFromArray(valueArray), db);
     });
     db.close();
+}
+
+function getStringFromArray(arrayObject){
+    return arrayObject ? arrayObject.map((value) =>  value).join(',') : '';
 }
 
 function insertTableRecord(tablename, fields, values, db, cb){
@@ -208,3 +231,4 @@ function insertTableRecord(tablename, fields, values, db, cb){
 
 module.exports.initialize = initialize;
 module.exports.insertFP =insertFP;
+module.exports.connect = connect;
