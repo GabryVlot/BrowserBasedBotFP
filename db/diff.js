@@ -1,6 +1,6 @@
 var dbUtils = require('./db-utils.js');
-const sqlite3 = require('sqlite3').verbose()
 let tableCounter = 0;
+let closeCounter = 3;
 const readline = require('readline');
 const rl = readline.createInterface({
     input: process.stdin,
@@ -26,12 +26,16 @@ compare = function(){
         return;
 
     db =  dbUtils.connect();
-    readRecords('fp', source_configId, target_configId);
-    readRecords('fonts', source_configId, target_configId);
-    readRecords('plugins', source_configId, target_configId);
-    readRecords('ie_plugins', source_configId, target_configId);
-    readRecords('requests', source_configId, target_configId);
-    readRecords('browser', source_configId, target_configId);
+
+    diffList('browser', 'window_keys', source_configId, target_configId);
+    diffList('browser', 'document_keys', source_configId, target_configId);
+    diffList('browser', 'navigator_keys', source_configId, target_configId);
+    // readRecords('fp', source_configId, target_configId);
+    // readRecords('fonts', source_configId, target_configId);
+    // readRecords('plugins', source_configId, target_configId);
+    // readRecords('ie_plugins', source_configId, target_configId);
+    // readRecords('requests', source_configId, target_configId);
+    // readRecords('browser', source_configId, target_configId);
 }
 
 var readRecords = function(tableName, sourceId, targetId){
@@ -54,10 +58,52 @@ var readRecords = function(tableName, sourceId, targetId){
     })
 }
 
+var diffList = function(tableName, listName,sourceId, targetId){
+    readFromTable(tableName, sourceId, function(sourceRows){
+        readFromTable(tableName, targetId, (targetRows) =>{
+            const sourceRow = sourceRows[0];
+            const targetRow = targetRows[0];
+            if (sourceRow.hash !== targetRow.hash) {
+                const sourceList = sourceRow[listName].split(',');
+                const targetList = targetRow[listName].split(',');
+                let missing = [];
+                let added = [];
+                for (var i=0;i<sourceList.length;i++){
+                    const sourceItem = sourceList[i];
+                    if (targetList.indexOf(sourceItem) === -1)
+                        missing.push(sourceItem);
+                }
+
+                for (var i=0;i<targetList.length;i++){
+                    const targetItem = targetList[i];
+                    if (sourceList.indexOf(targetItem) === -1)
+                        added.push(targetItem);
+                }
+
+                if (missing.length === 0 && added.length === 0)
+                    return;
+
+                console.log('\n##### ', listName, ' ###########\n')
+                if (missing.length > 0) {
+                    console.log('@@Missing@@@', missing.length, ' / sourcelist: ', sourceList.length);
+                    console.log(missing.join());
+                }
+                if (added.length > 0){
+                    console.log('@@Added@@@', added.length, ' / targetlist: ', targetList.length);
+                    console.log(added.join());
+                }
+            };
+
+            close();
+        })
+    })
+}
+
 function close(){
     tableCounter++;
-    if (tableCounter === 6)
+    if (tableCounter === closeCounter){
         db.close();
+    }
 }
 
 function readFromTable(table, id,  callback){
