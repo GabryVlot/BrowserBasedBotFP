@@ -1,6 +1,6 @@
 var dbUtils = require('./db-utils.js');
 let tableCounter = 0;
-let closeCounter = 3;
+let closeCounter = 9;
 const readline = require('readline');
 const rl = readline.createInterface({
     input: process.stdin,
@@ -28,14 +28,16 @@ compare = function(){
     db =  dbUtils.connect();
 
     diffList('browser', 'window_keys', source_configId, target_configId);
-    diffList('browser', 'document_keys', source_configId, target_configId);
-    diffList('browser', 'navigator_keys', source_configId, target_configId);
-    // readRecords('fp', source_configId, target_configId);
-    // readRecords('fonts', source_configId, target_configId);
-    // readRecords('plugins', source_configId, target_configId);
-    // readRecords('ie_plugins', source_configId, target_configId);
-    // readRecords('requests', source_configId, target_configId);
-    // readRecords('browser', source_configId, target_configId);
+    diffList('document', 'document_keys', source_configId, target_configId);
+
+    readRecords('fp', source_configId, target_configId);
+    readRecords('fonts', source_configId, target_configId);
+    readRecords('swf_fonts', source_configId, target_configId);
+    readRecords('plugins', source_configId, target_configId);
+    readRecords('ie_plugins', source_configId, target_configId);
+    readRecords('requests', source_configId, target_configId);
+    readRecords('browser', source_configId, target_configId);
+    readRecords('navigator', source_configId, target_configId);
 }
 
 var readRecords = function(tableName, sourceId, targetId){

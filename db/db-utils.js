@@ -4,7 +4,9 @@ const _ = require('underscore');
 const hash = require('object-hash');
 
 const valueTableFields = ['configuration_id', 'hash', 'value'];
-const browserFields = ['configuration_id', 'hash', 'window_keys', 'document_keys', 'navigator_keys', 'language', 'languages','missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup'];
+const browserFields = ['configuration_id', 'hash', 'window_keys', 'missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup'];
+const documentFields = ['configuration_id', 'hash', 'document_keys', 'documentElement'];
+const navigatorFields = ['configuration_id', 'hash', 'navigator', 'language', 'languages', 'mimeTypes'];
 const requestFields = ['configuration_id', 'hash', 'headers'];
 
 function initialize(){
@@ -44,15 +46,42 @@ function initialize(){
             ")"
         );
 
+        db.run("CREATE TABLE if not exists swf_fonts (" +
+            "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "configuration_id integer," +
+            "hash text," +
+            "value TEXT," +
+            "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
+            ")"
+        );
+
+        db.run("CREATE TABLE if not exists navigator (" +
+            "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "configuration_id integer," +
+            "hash text," +
+            "navigator TEXT," +
+            "language," +
+            "languages," +
+            "mimeTypes," +
+            "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
+            ")"
+        );
+
+        db.run("CREATE TABLE if not exists document (" +
+            "id integer PRIMARY KEY AUTOINCREMENT, " +
+            "configuration_id integer," +
+            "hash text," +
+            "document_keys TEXT," +
+            "documentElement TEXT," +
+            "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
+            ")"
+        );
+
         db.run("CREATE TABLE if not exists browser (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
             "hash text," +
             "window_keys TEXT," +
-            "document_keys TEXT," +
-            "navigator_keys TEXT," +
-            "language," +
-            "languages," +
             "missingBindFunction integer," +
             "stackTrace text," +
             "webSecurity integer," +
@@ -125,6 +154,7 @@ function insertFP(params, requestHeaders){
     let plugins = '';
     let ie_plugins = '';
     let fonts = '';
+    let swfFonts = '';
 
     let counter = 0;
     _.each(params.fp, function(fingerPrint){
@@ -146,6 +176,11 @@ function insertFP(params, requestHeaders){
 
          if (fingerPrint.key === 'js_fonts') {
              fonts = fingerPrint.value;
+             return;
+         }
+
+         if (fingerPrint.key === 'swf_fonts') {
+             swfFonts = fingerPrint.value;
              return;
          }
 
@@ -194,17 +229,34 @@ function insertFP(params, requestHeaders){
        //Fonts
        const fontsHash = hash(fonts);
        insertTableRecord('fonts', getStringFromArray(valueTableFields), insertedID + ',"' + fontsHash + '","' + fonts.toString() + '"', db);
+
+        const swfFontsHash = hash(swfFonts);
+        insertTableRecord('swf_fonts', getStringFromArray(valueTableFields), insertedID + ',"' + swfFontsHash + '","' + swfFonts.toString() + '"', db);
+
         //Browser
         const browserHash = hash(params.browser);
-        const browserValues = [insertedID, '"' + browserHash + '"', '"' + getStringFromArray(params.browser.window) + '"', '"' + getStringFromArray(params.browser.document) + '"', '"' +
-        getStringFromArray(params.browser.navigator) + '"', '"' + params.browser.language + '"', '"' + getStringFromArray(params.browser.languages) + '"',
+        const browserValues = [insertedID, '"' + browserHash + '"', '"' + getStringFromArray(params.browser.window) + '"', +
             params.browser.missingBindFunction ? 1 : 0, '"' + params.browser.stackTrace + '"', params.browser.webSecurity ? 1 : 0, params.browser.autoClosePopup ? 1 : 0];
 
         insertTableRecord('browser', getStringFromArray(browserFields), getStringFromArray(browserValues), db);
+
+        //Navigator
+        const navigatorHash = hash(params.navigator);
+        const navigatorValues = [insertedID, "'" + navigatorHash + "'", "'" + params.navigator.navigator + "'", "'" + params.navigator.language + "'", "'" + getStringFromArray(params.navigator.languages) + "'", "'" + params.navigator.mimeTypes + "'"];
+        insertTableRecord('navigator', getStringFromArray(navigatorFields), getStringFromArray(navigatorValues), db);
+
+        //Document
+        const documentHash = hash(params.document);
+        let elementValue = JSON.stringify(params.document.documentElement);
+        elementValue = elementValue.replace(/'/g, '"');
+        const documentValues = [insertedID, "'" + documentHash + "'", '"' + getStringFromArray(params.document.docKeys) + '"', "'" + elementValue + "'" ]
+        insertTableRecord('document', getStringFromArray(documentFields), getStringFromArray(documentValues), db);
+
         //Requests
         const requestHash = hash(requestHeaders);
        insertTableRecord('requests', getStringFromArray(requestFields), insertedID + ",'" + requestHash + "','" + requestHeaders + "'", db);
-       //FP
+
+        //FP
         fields.push('configuration_id');
         valueArray.push(insertedID);
 

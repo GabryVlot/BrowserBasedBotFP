@@ -2,8 +2,10 @@
 <head>
     <link rel="stylesheet" type="text/css" href="css/index.css">
     <script src='js/fingerprint2.js'></script>
+    <script type="text/javascript" src="js/swfobject.js"></script>
     <script>
 
+        swfobject.registerObject("myId", "9.0.0", "expressInstall.swf");
         const missingBind = lackOfJavaScriptEngineFeatures();
         const stackTrace = stackTraces();
         const webSecurity = hasWebSecurity();
@@ -16,31 +18,82 @@
                 return;
             }
 
-            var fp = new Fingerprint2();
+            const options = {excludeJsFonts: false, swfPath: '/swf/FontList.swf'};
+            var fp = new Fingerprint2(options);
             fp.get(function (result, components) {
                 const windowKeys = getObjectProperties(window);
                 const docKeys = getObjectProperties(document);
-                const navigatorKeys = getObjectProperties(navigator);
+
+                let _navigator = {};
+                for (let i in navigator) _navigator[i] = navigator[i];
+
+                delete _navigator.plugins;
+                delete _navigator.mimeTypes;
+                delete _navigator.language;
+                delete _navigator.languages;
                 const params = {
                     "hash": result,
                     "fp": components,
                     "configuration": configuration,
                     "browser": {
                         window: windowKeys,
-                        document: docKeys,
-                        navigator: navigatorKeys,
-                        language: navigator.language,
-                        languages: navigator.languages,
                         missingBindFunction: missingBind,
                         stackTrace: stackTrace,
                         webSecurity: webSecurity,
                         autoClosePopup: autoClosePopup
+                    },
+                    "navigator": {
+                        mimeTypes: JSON.stringify(navigator.mimeTypes),
+                        navigator: JSON.stringify(_navigator),
+                        language: navigator.language,
+                        languages: navigator.languages,
+                    },
+                    "document": {
+                        docKeys: docKeys,
+                        documentElement: toJSON(document.documentElement)
                     }
+
                 }
+
                 console.log('send params', params, null, 4);
                 if (cb)
                     cb(params);
             });
+        }
+
+
+        function toJSON(node) {
+            node = node || this;
+            var obj = {
+                nodeType: node.nodeType
+            };
+            if (node.tagName) {
+                obj.tagName = node.tagName.toLowerCase();
+            } else
+            if (node.nodeName) {
+                obj.nodeName = node.nodeName;
+            }
+            if (node.nodeValue) {
+                obj.nodeValue = node.nodeValue;
+            }
+            var attrs = node.attributes;
+            if (attrs) {
+                var length = attrs.length;
+                var arr = obj.attributes = new Array(length);
+                for (var i = 0; i < length; i++) {
+                    attr = attrs[i];
+                    arr[i] = [attr.nodeName, attr.nodeValue];
+                }
+            }
+            var childNodes = node.childNodes;
+            if (childNodes) {
+                length = childNodes.length;
+                arr = obj.childNodes = new Array(length);
+                for (i = 0; i < length; i++) {
+                    arr[i] = toJSON(childNodes[i]);
+                }
+            }
+            return obj;
         }
 
         function getObjectProperties(browserObject){
@@ -153,20 +206,33 @@
 
     </script>
 </head>
-
-<div class="ext-box">
-    <h1>Detection</h1>
-    <div class="int-box">
-
+<body>
+    <div class="ext-box">
+        <h1>Detection</h1>
         <div class="int-box">
-            <label>Configuration description:</label>
-            <input id="txtConfDesc" type="text" name="confDescr">
+
+            <div class="int-box">
+                <label>Configuration description:</label>
+                <input id="txtConfDesc" type="text" name="confDescr">
+            </div>
+            <button onclick="saveFP()" id="btnFP">Fingerprint Browser</button>
+            <button onclick="lackOfJavaScriptEngineFeatures()" id="btnJavaScriptEngine">JavaScriptEngine</button>
+            <button onclick="timing()" id="btnTiming">Timing</button>
+            <button onclick="stackTraces()" id="btnStackTraces">StackTraces</button>
+            <button onclick="getParams()" id="btnDryRun">Dry run</button>
         </div>
-        <button onclick="saveFP()" id="btnFP">Fingerprint Browser</button>
-        <button onclick="lackOfJavaScriptEngineFeatures()" id="btnJavaScriptEngine">JavaScriptEngine</button>
-        <button onclick="timing()" id="btnTiming">Timing</button>
-        <button onclick="stackTraces()" id="btnStackTraces">StackTraces</button>
-        <button onclick="getParams()" id="btnDryRun">Dry run</button>
+
+
+
+
     </div>
-</div>
+
+    <!--<object type="application/x-shockwave-flash" data="swf/test.swf" width="550" height="400" name="movie_name" id="movie_name" align="middle">-->
+        <!--<param name="movie" value="swf/test.swf"/>-->
+        <!--<a href="http://www.adobe.com/go/getflash">-->
+            <!--<img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player"/>-->
+        <!--</a>-->
+    <!--</object>-->
+</body>
+
 </html>
