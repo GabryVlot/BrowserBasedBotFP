@@ -24,8 +24,8 @@
                 const windowKeys = getObjectProperties(window);
                 const docKeys = getObjectProperties(document);
 
-                let _navigator = {};
-                for (let i in navigator) _navigator[i] = navigator[i];
+                var _navigator = {};
+                for (var i in navigator) _navigator[i] = navigator[i];
 
                 delete _navigator.plugins;
                 delete _navigator.mimeTypes;
@@ -118,6 +118,19 @@
             getParams(function(params){
                 http.send(JSON.stringify(params));
             })
+        }
+
+        function missingImage(){
+            var body = document.getElementsByTagName("body")[0];
+            var image = document.createElement("img");
+            image.src = "http://iloveponeydotcom32188.jg";
+            image.setAttribute("id", "fakeimage");
+            body.appendChild(image);
+            image.onerror = function(){
+                if(image.width == 0 && image.height == 0) {
+                    console.log("Chrome headless detected");
+                }
+            }
         }
 
         function lackOfJavaScriptEngineFeatures(){
