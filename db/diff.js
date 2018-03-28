@@ -21,14 +21,13 @@ rl.question('Source: ', (answer) => {
 
 var db;
 compare = function(){
-    console.log('SOURCE', source_configId, ' TARGET ', target_configId);
     if (!source_configId || !target_configId)
         return;
 
     db =  dbUtils.connect();
 
     diffList('navigator', 'navigator', source_configId, target_configId, true);
-    // diffList('browser', 'window_keys', source_configId, target_configId);
+    //diffList('browser', 'window_keys', source_configId, target_configId);
     // diffList('document', 'document_keys', source_configId, target_configId);
     //
     // readRecords('fp', source_configId, target_configId);
@@ -62,28 +61,49 @@ var readRecords = function(tableName, sourceId, targetId){
     })
 }
 
-var diffList = function(tableName, listName,sourceId, targetId, compareValue){
+function getObjectProperties(browserObject){
+    const keys = [];
+    for (var w in browserObject){ keys.push(w);}
+    return keys;
+}
+
+var diffList = function(tableName, listName,sourceId, targetId, isJSON){
     readFromTable(tableName, sourceId, function(sourceRows){
         readFromTable(tableName, targetId, (targetRows) =>{
             const sourceRow = sourceRows[0];
             const targetRow = targetRows[0];
+            const splitter = ',';
             if (sourceRow.hash !== targetRow.hash) {
-                const sourceList = sourceRow[listName].split(',');
-                const targetList = targetRow[listName].split(',');
+                let sourceList;
+                let targetList;
+                let sourceObj;
+                let targetObj;
+                if (isJSON){
+                    sourceObj = JSON.parse(sourceRow[listName]);
+                    targetObj = JSON.parse(targetRow[listName]);
+                    sourceList = getObjectProperties(sourceObj);
+                    targetList = getObjectProperties(targetObj);
+                }
+                else{
+                    sourceList = sourceRow[listName].split(splitter);
+                    targetList = targetRow[listName].split(splitter);
+                }
                 let missing = [];
                 let added = [];
                 let modified = [];
                 for (var i=0;i<sourceList.length;i++){
-                    const sourceItem = sourceList[i];
-                    const targetIndex = targetList.indexOf(sourceItem);
+                    const key = sourceList[i];
+                    const targetIndex = targetList.indexOf(key);
                     if (targetIndex === -1) {
-                        missing.push(sourceItem);
+                        missing.push(key);
                     }
-                    else if (compareValue)
+                    else if (isJSON)
                     {
-                        const targetItem = targetList[targetIndex];
-                        if (sourceItem !== targetItem){
-                            modified.push(sourceItem + ' #### ' + targetItem);
+                        const sourceValue = sourceObj[key] || '';
+                        const targetValue = targetObj[key] || '';
+                        if (sourceValue.toString() !== targetValue.toString() ){
+                            console.log('Compare', sourceValue, targetValue, key)
+                            modified.push(key);
                         }
                     }
                 }
@@ -94,22 +114,22 @@ var diffList = function(tableName, listName,sourceId, targetId, compareValue){
                         added.push(targetItem);
                 }
 
-                if (missing.length === 0 && added.length === 0)
+                if (missing.length === 0 && added.length === 0 && modified.length === 0)
                     return;
 
                 console.log('\n##### ', listName, ' ###########\n')
                 if (missing.length > 0) {
                     console.log('@@Missing@@@', missing.length, ' / sourcelist: ', sourceList.length);
-                    console.log(missing.join());
+                    console.log(missing.join('\n'));
                 }
                 if (added.length > 0){
-                    console.log('@@Added@@@', added.length, ' / targetlist: ', targetList.length);
-                    console.log(added.join());
+                    console.log('\n@@Added@@@', added.length, ' / targetlist: ', targetList.length);
+                    console.log(added.join('\n'));
                 }
 
                 if (modified.length > 0){
-                    console.log('@@Modified@@@', modified.length);
-                    console.log(modified.join());
+                    console.log('\n@@Modified@@@', modified.length);
+                    console.log(modified.join('\n'));
                 }
             };
 
