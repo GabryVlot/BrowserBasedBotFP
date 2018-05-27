@@ -1,4 +1,4 @@
-var dbUtils = require('./db-utils.js');
+var dbUtils = require('../db/db-utils.js');
 let tableCounter = 0;
 let closeCounter = 9;
 const readline = require('readline');
@@ -26,14 +26,14 @@ compare = function(){
 
     db =  dbUtils.connect();
 
-    diffList('navigator', 'navigator', source_configId, target_configId, true);
-    //diffList('browser', 'window_keys', source_configId, target_configId);
+    // diffList('navigator', 'navigator', source_configId, target_configId, true);
+    diffList('browser', 'window_keys', source_configId, target_configId);
     // diffList('document', 'document_keys', source_configId, target_configId);
     //
     // readRecords('fp', source_configId, target_configId);
-    // readRecords('fonts', source_configId, target_configId);
+    // readRecords('js_fonts', source_configId, target_configId);
     // readRecords('swf_fonts', source_configId, target_configId);
-    // readRecords('plugins', source_configId, target_configId);
+    // readRecords('regular_plugins', source_configId, target_configId);
     // readRecords('ie_plugins', source_configId, target_configId);
     // readRecords('requests', source_configId, target_configId);
     // readRecords('browser', source_configId, target_configId);

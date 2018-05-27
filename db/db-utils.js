@@ -1,16 +1,18 @@
-const sqlite3 = require('sqlite3').verbose()
-const path = require('path')
-const _ = require('underscore');
-const hash = require('object-hash');
+/**********************************************************
+ * db-utils.js
+ * Responsible for the creation of the DB structure and making the DB connection
+ *
+ * License 2018 Open Source License
+ * Written By: Gabry Vlot (https://github.com/GabryVlot)
+ * Project: Detecting Web bot Detecting | Fingerprinting (https://github.com/GabryVlot/BrowserBasedBotFP)
+ **********************************************************/
 
-const valueTableFields = ['configuration_id', 'hash', 'value'];
-const browserFields = ['configuration_id', 'hash', 'window_keys', 'missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup'];
-const documentFields = ['configuration_id', 'hash', 'document_keys', 'documentElement'];
-const navigatorFields = ['configuration_id', 'hash', 'navigator', 'language', 'languages', 'mimeTypes'];
-const requestFields = ['configuration_id', 'hash', 'headers'];
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+const dbName = 'fpdb.db';
 
+//create database structure: implementation of db Tables if the tables haven't been created yet
 function initialize(){
-
     const db = connect();
     db.serialize(function() {
 
@@ -19,7 +21,7 @@ function initialize(){
             "value TEXT)"
         );
 
-        db.run("CREATE TABLE if not exists plugins (" +
+        db.run("CREATE TABLE if not exists regular_plugins (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
             "hash text," +
@@ -37,7 +39,7 @@ function initialize(){
             ")"
         );
 
-        db.run("CREATE TABLE if not exists fonts (" +
+        db.run("CREATE TABLE if not exists js_fonts (" +
             "id integer PRIMARY KEY AUTOINCREMENT, " +
             "configuration_id integer," +
             "hash text," +
@@ -135,152 +137,18 @@ function initialize(){
     db.close();
 }
 
+//Create a connection to the db
 function connect(){
-    const dbPath = path.resolve(__dirname, 'fpdb.db')
+    const dbPath = path.resolve(__dirname, dbName)
     const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error(err.message);
             return;
         }
-        console.log('Connected to  database.');
+        console.log('Connected to database.');
     });
     return db;
 }
 
-function insertFP(params, requestHeaders){
-    const db = connect();
-    let fields = ['hash'];
-    let valueArray = ["'" + params.hash + "'"];
-    let plugins = '';
-    let ie_plugins = '';
-    let fonts = '';
-    let swfFonts = '';
-
-    let counter = 0;
-    _.each(params.fp, function(fingerPrint){
-        counter++;
-        // if (counter >= 6) {
-        //     if (counter === 6)
-        //     console.log(fingerPrint.key, fingerPrint.value)
-        //     return;
-        // }
-         if (fingerPrint.key === 'regular_plugins'){
-             plugins = fingerPrint.value;
-             return;
-         }
-
-         if (fingerPrint.key === 'ie_plugins'){
-             ie_plugins = fingerPrint.value;
-             return;
-         }
-
-         if (fingerPrint.key === 'js_fonts') {
-             fonts = fingerPrint.value;
-             return;
-         }
-
-         if (fingerPrint.key === 'swf_fonts') {
-             swfFonts = fingerPrint.value;
-             return;
-         }
-
-         fields.push(fingerPrint.key);
-        switch(fingerPrint.key) {
-            case "resolution":
-            case "available_resolution":
-                valueArray.push("'" + fingerPrint.value[0].toString() + 'x' + fingerPrint.value[1].toString() + "'");
-                break;
-            case "touch_support":
-                let touchValue = '';
-                _.each(fingerPrint.value, function(value){
-                    touchValue += value.toString() + ','
-                })
-                valueArray.push("'" + touchValue + "'");
-                break;
-            case "adblock":
-            case "has_lied_languages":
-            case "has_lied_resolution":
-            case "has_lied_os":
-            case "has_lied_browser":
-                valueArray.push(fingerPrint.value ? 1 : 0);
-                break;
-            case "user_agent":
-            case "language":
-            case "cpu_class":
-            case "navigator_platform":
-            case "do_not_track":
-            case "canvas":
-            case "webgl":
-            case "webgl_vendor":
-                valueArray.push("'" + fingerPrint.value + "'");
-                break;
-            default:
-                valueArray.push(typeof fingerPrint.value === 'number' ? fingerPrint.value : -1);
-        }
-    });
-
-    insertTableRecord('configuration', 'value', "'" + params.configuration + "'", db, function(insertedID){
-       //Plugins
-       const pluginHash = hash(plugins);
-       insertTableRecord('plugins', getStringFromArray(valueTableFields), insertedID + ',"' + pluginHash + '","' + plugins.toString() + '"', db);
-        //ie plugins
-       const iePluginHash = hash(ie_plugins);
-       insertTableRecord('ie_plugins', getStringFromArray(valueTableFields), insertedID + ',"' + iePluginHash + '","' + ie_plugins.toString() + '"', db);
-       //Fonts
-       const fontsHash = hash(fonts);
-       insertTableRecord('fonts', getStringFromArray(valueTableFields), insertedID + ',"' + fontsHash + '","' + fonts.toString() + '"', db);
-
-        const swfFontsHash = hash(swfFonts);
-        insertTableRecord('swf_fonts', getStringFromArray(valueTableFields), insertedID + ',"' + swfFontsHash + '","' + swfFonts.toString() + '"', db);
-
-        //Browser
-        const browserHash = hash(params.browser);
-        const browserValues = [insertedID, '"' + browserHash + '"', '"' + getStringFromArray(params.browser.window) + '"', +
-            params.browser.missingBindFunction ? 1 : 0, '"' + params.browser.stackTrace + '"', params.browser.webSecurity ? 1 : 0, params.browser.autoClosePopup ? 1 : 0];
-
-        insertTableRecord('browser', getStringFromArray(browserFields), getStringFromArray(browserValues), db);
-
-        //Navigator
-        const navigatorHash = hash(params.navigator);
-        const navigatorValues = [insertedID, "'" + navigatorHash + "'", "'" + params.navigator.navigator + "'", "'" + params.navigator.language + "'", "'" + getStringFromArray(params.navigator.languages) + "'", "'" + params.navigator.mimeTypes + "'"];
-        insertTableRecord('navigator', getStringFromArray(navigatorFields), getStringFromArray(navigatorValues), db);
-
-        //Document
-        const documentHash = hash(params.document);
-        let elementValue = JSON.stringify(params.document.documentElement);
-        elementValue = elementValue.replace(/'/g, '"');
-        const documentValues = [insertedID, "'" + documentHash + "'", '"' + getStringFromArray(params.document.docKeys) + '"', "'" + elementValue + "'" ]
-        insertTableRecord('document', getStringFromArray(documentFields), getStringFromArray(documentValues), db);
-
-        //Requests
-        const requestHash = hash(requestHeaders);
-       insertTableRecord('requests', getStringFromArray(requestFields), insertedID + ",'" + requestHash + "','" + requestHeaders + "'", db);
-
-        //FP
-        fields.push('configuration_id');
-        valueArray.push(insertedID);
-
-       insertTableRecord('fp', getStringFromArray(fields), getStringFromArray(valueArray), db);
-    });
-    db.close();
-}
-
-function getStringFromArray(arrayObject){
-    return arrayObject ? arrayObject.map((value) =>  value).join(',') : '';
-}
-
-function insertTableRecord(tablename, fields, values, db, cb){
-    let sqlPlugins = 'INSERT INTO ' + tablename + '(' + fields + ') VALUES ('+ values + ')';
-    db.run(sqlPlugins, function(err, result) {
-        if (err) {
-            return console.error(tablename + ' ' + err.message);
-        }
-        console.log(tablename + ` Rows inserted ${this.changes}`, this.lastID);
-        if (cb)
-            cb(this.lastID);
-    })
-}
-
 module.exports.initialize = initialize;
-module.exports.insertFP =insertFP;
 module.exports.connect = connect;
