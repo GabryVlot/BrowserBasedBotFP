@@ -65,6 +65,7 @@ function initialize(){
             "language," +
             "languages," +
             "mimeTypes," +
+            "webSocket," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
         );
@@ -88,6 +89,7 @@ function initialize(){
             "stackTrace text," +
             "webSecurity integer," +
             "autoClosePopup integer," +
+            "missingImage integer," +
             "FOREIGN KEY (configuration_id) REFERENCES configuration (id)" +
             ")"
         );

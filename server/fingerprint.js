@@ -84,16 +84,16 @@ function processFP2Props(fpProps, configurationId, db){
 }
 
 function processBrowserProps(props, configurationId, db){
-    const browserFields = ['configuration_id', 'hash', 'window_keys', 'missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup'];
+    const browserFields = ['configuration_id', 'hash', 'window_keys', 'missingBindFunction', 'stackTrace', 'webSecurity', 'autoClosePopup', 'missingImage'];
     const browserValues = [configurationId, '"' + hash(props) + '"', '"' + getStringFromArray(props.window) + '"', +
-        props.missingBindFunction ? 1 : 0, '"' + props.stackTrace + '"', props.webSecurity ? 1 : 0, props.autoClosePopup ? 1 : 0];
+        props.missingBindFunction ? 1 : 0, '"' + props.stackTrace + '"', props.webSecurity ? 1 : 0, props.autoClosePopup ? 1 : 0, props.missingImage ? 1 : 0];
 
     insertTableRecord('browser', getStringFromArray(browserFields), getStringFromArray(browserValues), db);
 }
 
 function processNavigatorProps(props, configurationId, db){
-    const navigatorFields = ['configuration_id', 'hash', 'navigator', 'language', 'languages', 'mimeTypes'];
-    const navigatorValues = [configurationId, "'" +  hash(props) + "'", "'" + props.navigator + "'", "'" + props.language + "'", "'" + getStringFromArray(props.languages) + "'", "'" + props.mimeTypes + "'"];
+    const navigatorFields = ['configuration_id', 'hash', 'navigator', 'language', 'languages', 'mimeTypes', 'webSocket'];
+    const navigatorValues = [configurationId, "'" +  hash(props) + "'", "'" + props.navigator + "'", "'" + props.language + "'", "'" + getStringFromArray(props.languages) + "'", "'" + props.mimeTypes + "'", "'" + props.webSocket + "'"];
     insertTableRecord('navigator', getStringFromArray(navigatorFields), getStringFromArray(navigatorValues), db);
 }
 

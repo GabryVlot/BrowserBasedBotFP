@@ -6,6 +6,7 @@ const start = function(){
     const targetRow = testData.targetRow;
 
     let result = diffFP.compareRecord('fp', sourceRow, targetRow);
+
 }
 
 start();
