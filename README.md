@@ -1,6 +1,6 @@
 # BrowserBasedBotFP
 
-##Description
+## Description
 BrowserBasedBotFP makes it possible to extract browser fingerprint relevant in relation to web bot detection by making use of a test web site.
 
 The directory /client  contains a web site that gathers the following browser fingerprinting properties :
@@ -47,8 +47,8 @@ The directory /client  contains a web site that gathers the following browser fi
 13. Global DOM document object keys
 14. Test page main body element.
 
-##Installation
+## Installation
 Run: npm install
 
-##Configuration
+## Configuration
 Specify the root of the project in ./settings.json
