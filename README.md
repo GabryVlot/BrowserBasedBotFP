@@ -48,7 +48,11 @@ The directory /client  contains a web site that gathers the following browser fi
 14. Test page main body element.
 
 ## Installation
-Run: npm install
+First make sure NodeJS has been installed on your machine (https://nodejs.org/en/download/)
+After installation, type in the terminal window : npm install
 
 ## Configuration
 Specify the root of the project in ./settings.json
+
+## Usage
+Type in the terminal window in the server folder : node server.js to start the web server on localhost port 8080
